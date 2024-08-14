@@ -2,12 +2,10 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 var Reset = "\033[0m"
@@ -19,8 +17,6 @@ var Magenta = "\033[35m"
 var Cyan = "\033[36m"
 var Gray = "\033[37m"
 var White = "\033[97m"
-
-var commands map[string]command
 
 type locationResponse struct {
 	Count    int    `json:"count"`
@@ -62,93 +58,24 @@ func exitCom(s *state) error {
 	return nil
 }
 
-func FetchAndUnmarshal[T any](url string) (T, error) {
-	var result T
-	resp, err := http.Get(url)
-	if err != nil {
-		return result, fmt.Errorf("failed to fetch data from URL: %w", err)
-	}
-	defer resp.Body.Close()
+// func init() {
 
-	if resp.StatusCode != http.StatusOK {
-		return result, fmt.Errorf("received non-OK HTTP status: %s", resp.Status)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return result, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	err = json.Unmarshal([]byte(body), &result)
-	if err != nil {
-		return result, fmt.Errorf("failed to unmarshal JSON: %w", err)
-	}
-	// fmt.Println("result should be returned", result)
-	return result, nil
-}
-
-func locMap(s *state) error {
-
-	endpoint := s.mapNext
-	if endpoint == "" {
-		endpoint = "http://pokeapi.co/api/v2/location"
-	}
-
-	locRes, err := FetchAndUnmarshal[locationResponse](endpoint)
-	if err != nil {
-		return err
-	}
-
-	// fmt.Println(locRes.Next, locRes.Previous)
-	// fmt.Printf("%+v \n", locList)
-
-	for _, location := range locRes.Results {
-		fmt.Println(location.Name)
-	}
-
-	s.mapNext = locRes.Next
-	s.mapBefore = endpoint
-
-	return nil
-}
-
-func locMapB(s *state) error {
-
-	endpoint := s.mapBefore
-	if endpoint == "" {
-		endpoint = "http://pokeapi.co/api/v2/location"
-	}
-
-	locRes, err := FetchAndUnmarshal[locationResponse](endpoint)
-	if err != nil {
-		return err
-	}
-
-	for _, location := range locRes.Results {
-		fmt.Println(location.Name)
-	}
-
-	s.mapNext = locRes.Next
-	s.mapBefore = locRes.Previous
-
-	return nil
-}
-
+// }
+var commands map[string]command
 var ss state
-
-func init() {
-	ss = state{false, 0, 20, "", ""}
-	commands = map[string]command{
-		"help":  {"help", "display help message", helpCom},
-		"exit":  {"exit", "exit the program", exitCom},
-		"reset": {"reset", "reset the state of program if any", tbd},
-		"map":   {"map", "list location, if without argument call again to call next available location", locMap},
-		"mapb":  {"mapb", "reset the state of program if any", locMapB},
-	}
-}
+var responseCache map[string]stash
 
 func main() {
 	reader := bufio.NewReader(os.Stdin)
+
+	normalInit()
+
+	go func() {
+		for {
+			time.Sleep(15 * time.Second)
+			cleanCache(20 * time.Second)
+		}
+	}()
 
 	for {
 		fmt.Print(Green + "pokedex > " + Reset)
@@ -165,13 +92,21 @@ func main() {
 			}
 		}
 
-		// if input == "exit" || input == "EXIT" {
-		// 	fmt.Println("ma'a salamah")
-		// 	break
-		// }
 		if ss.exit {
 			break
 		}
+	}
+}
+func normalInit() {
+
+	responseCache = make(map[string]stash)
+	ss = state{false, 0, 20, "", ""}
+	commands = map[string]command{
+		"help":  {"help", "display help message", helpCom},
+		"exit":  {"exit", "exit the program", exitCom},
+		"reset": {"reset", "reset the state of program if any", tbd},
+		"map":   {"map", "list location, if without argument call again to call next available location", locMap},
+		"mapb":  {"mapb", "reset the state of program if any", locMapB},
 	}
 
 }
