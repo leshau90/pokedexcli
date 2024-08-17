@@ -35,11 +35,12 @@ type command struct {
 }
 
 type state struct {
-	exit                bool
 	mapIndex            int
 	defaultMapIncrement int
 	mapNext             string
 	mapBefore           string
+	exit                bool
+	testing             bool
 }
 
 func tbd(s *state) error {
@@ -100,7 +101,7 @@ func main() {
 func normalInit() {
 
 	responseCache = make(map[string]stash)
-	ss = state{false, 0, 20, "", ""}
+	ss = state{0, 20, "", "", false, false}
 	commands = map[string]command{
 		"help":  {"help", "display help message", helpCom},
 		"exit":  {"exit", "exit the program", exitCom},

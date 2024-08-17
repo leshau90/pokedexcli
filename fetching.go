@@ -71,11 +71,11 @@ func FetchUnmarshalCache[T any](url string) (T, error) {
 	}
 
 	cacheMutex.Lock()
-	fmt.Println("STORING map of:", len(responseCache))
-	fmt.Println("STORING cache with key:", url)
+	// fmt.Println("STORING map of:", len(responseCache))
+	// fmt.Println("STORING cache with key:", url)
 	responseCache[url] = stash{time.Now(), body}
 
-	fmt.Printf("%+v \n", responseCache[url])
+	// fmt.Printf("%+v \n", responseCache[url])
 
 	cacheMutex.Unlock()
 
@@ -94,8 +94,10 @@ func locMap(s *state) error {
 		return err
 	}
 
-	for _, location := range locRes.Results {
-		fmt.Println(location.Name)
+	if !s.testing {
+		for _, location := range locRes.Results {
+			fmt.Println(location.Name)
+		}
 	}
 
 	s.mapNext = locRes.Next
@@ -116,8 +118,10 @@ func locMapB(s *state) error {
 		return err
 	}
 
-	for _, location := range locRes.Results {
-		fmt.Println(location.Name)
+	if !s.testing {
+		for _, location := range locRes.Results {
+			fmt.Println(location.Name)
+		}
 	}
 
 	s.mapNext = locRes.Next
